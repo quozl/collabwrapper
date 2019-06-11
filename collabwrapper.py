@@ -71,23 +71,22 @@ from gettext import gettext as _
 from gi.repository import GObject
 from gi.repository import Gio
 from gi.repository import GLib
+from gi.repository import TelepathyGLib
 import dbus
 
-from telepathy.interfaces import \
-    CHANNEL_INTERFACE, \
-    CHANNEL_INTERFACE_GROUP, \
-    CHANNEL_TYPE_TEXT, \
-    CHANNEL_TYPE_FILE_TRANSFER, \
-    CONN_INTERFACE_ALIASING, \
-    CHANNEL, \
-    CLIENT
-from telepathy.constants import \
-    CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES, \
-    CONNECTION_HANDLE_TYPE_CONTACT, \
-    CHANNEL_TEXT_MESSAGE_TYPE_NORMAL, \
-    SOCKET_ADDRESS_TYPE_UNIX, \
-    SOCKET_ACCESS_CONTROL_LOCALHOST
-from telepathy.client import Connection, Channel
+CHANNEL_INTERFACE = TelepathyGLib.IFACE_CHANNEL
+CHANNEL_INTERFACE_GROUP = TelepathyGLib.IFACE_CHANNEL_INTERFACE_GROUP
+CHANNEL_TYPE_TEXT = TelepathyGLib.IFACE_CHANNEL_TYPE_TEXT
+CHANNEL_TYPE_FILE_TRANSFER = TelepathyGLib.IFACE_CHANNEL_TYPE_FILE_TRANSFER
+CONN_INTERFACE_ALIASING = TelepathyGLib.IFACE_CONNECTION_INTERFACE_ALIASING
+CHANNEL = TelepathyGLib.IFACE_CHANNEL
+CLIENT = TelepathyGLib.IFACE_CLIENT
+CHANNEL_GROUP_FLAG_CHANNEL_SPECIFIC_HANDLES = TelepathyGLib.ChannelGroupFlags.CHANNEL_SPECIFIC_HANDLES
+CONNECTION_HANDLE_TYPE_CONTACT = TelepathyGLib.HandleType.CONTACT
+CHANNEL_TEXT_MESSAGE_TYPE_NORMAL = TelepathyGLib.ChannelTextMessageType.NORMAL
+SOCKET_ADDRESS_TYPE_UNIX = TelepathyGLib.SocketAddressType.UNIX
+SOCKET_ACCESS_CONTROL_LOCALHOST = TelepathyGLib.SocketAccessControl.LOCALHOST
+from telepathy.client import Channel
 
 from sugar3.presence import presenceservice
 from sugar3.activity.activity import SCOPE_PRIVATE
@@ -837,7 +836,7 @@ class _TextChannelWrapper(object):
 
         # Get the Telepathy Connection
         tp_name, tp_path = pservice.get_preferred_connection()
-        conn = Connection(tp_name, tp_path)
+        conn = TelepathyGLib.Connection.new(TelepathyGLib.DBusDaemon.dup(),tp_name, tp_path)
         group = self._text_chan[CHANNEL_INTERFACE_GROUP]
         my_csh = group.GetSelfHandle()
         if my_csh == cs_handle:

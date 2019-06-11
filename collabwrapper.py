@@ -86,7 +86,6 @@ CONNECTION_HANDLE_TYPE_CONTACT = TelepathyGLib.HandleType.CONTACT
 CHANNEL_TEXT_MESSAGE_TYPE_NORMAL = TelepathyGLib.ChannelTextMessageType.NORMAL
 SOCKET_ADDRESS_TYPE_UNIX = TelepathyGLib.SocketAddressType.UNIX
 SOCKET_ACCESS_CONTROL_LOCALHOST = TelepathyGLib.SocketAccessControl.LOCALHOST
-from telepathy.client import Channel
 
 from sugar3.presence import presenceservice
 from sugar3.activity.activity import SCOPE_PRIVATE
@@ -413,6 +412,71 @@ FT_REASON_REMOTE_STOPPED = 3
 FT_REASON_LOCAL_ERROR = 4
 FT_REASON_LOCAL_ERROR = 5
 FT_REASON_REMOTE_ERROR = 6
+
+
+class InterfaceFactory(object):
+    def __init__(self, dbus_object, default_interface=None):
+
+        self._dbus_object = dbus_object
+
+        self._interfaces = {}
+        self._valid_interfaces = set()
+        self._valid_interfaces.add(PROPERTIES_IFACE)
+        self._default_interface = default_interface
+        self._valid_interfaces.add(default_interface)
+
+    def get_valid_interfaces(self):
+        return self._valid_interfaces
+
+    def __getitem__(self, name):
+        if name not in self._interfaces:
+            if name not in self._valid_interfaces:
+                raise KeyError(name)
+
+            self._interfaces[name] = dbus.Interface(self._dbus_object, name)
+
+        return self._interfaces[name]
+
+    def __contains__(self, name):
+        return name in self._interfaces or name in self._valid_interfaces
+
+    def __getattr__(self, name):
+        return getattr(self[self._default_interface], name)
+
+
+class Channel(InterfaceFactory):
+    def __init__(self, service_name, object_path, bus=None, ready_handler=None):
+
+        self.service_name = service_name
+        self.object_path = object_path
+        self._ready_handler = ready_handler
+        object = dbus.Bus().get_object(service_name, object_path)
+        InterfaceFactory.__init__(self, object, TelepathyGLib.IFACE_CHANNEL)
+
+        if ready_handler:
+            self[TelepathyGLib.IFACE_CHANNEL].GetChannelType(
+                reply_handler=self.get_channel_type_reply_cb,
+                error_handler=self.default_error_handler)
+        else:
+            type = self.GetChannelType()
+            interfaces = self.GetInterfaces()
+            self.get_valid_interfaces().add(type)
+            self.get_valid_interfaces().update(interfaces)
+
+    def get_channel_type_reply_cb(self, interface):
+        self.get_valid_interfaces().add(interface)
+        self[TelepathyGLib.IFACE_CHANNEL].GetInterfaces(
+            reply_handler=self.get_interfaces_reply_cb,
+            error_handler=self.default_error_handler)
+
+    def get_interfaces_reply_cb(self, interfaces):
+        self.get_valid_interfaces().update(interfaces)
+        if self._ready_handler is not None:
+            self._ready_handler(self)
+
+    def default_error_handler(exception):
+        logging.basicConfig()
+        _logger.warning('Exception from asynchronous method call:\n%s' % exception)
 
 
 class _BaseFileTransfer(GObject.GObject):

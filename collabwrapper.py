@@ -68,11 +68,14 @@ import json
 import socket
 from gettext import gettext as _
 
+import gi
+gi.require_version('TelepathyGLib', '0.12')
 from gi.repository import GObject
 from gi.repository import Gio
 from gi.repository import GLib
 from gi.repository import TelepathyGLib
 import dbus
+from dbus import PROPERTIES_IFACE
 
 CHANNEL_INTERFACE = TelepathyGLib.IFACE_CHANNEL
 CHANNEL_INTERFACE_GROUP = TelepathyGLib.IFACE_CHANNEL_INTERFACE_GROUP
@@ -414,7 +417,7 @@ FT_REASON_LOCAL_ERROR = 5
 FT_REASON_REMOTE_ERROR = 6
 
 
-class InterfaceFactory(object):
+class _InterfaceFactory(object):
     def __init__(self, dbus_object, default_interface=None):
 
         self._dbus_object = dbus_object
@@ -444,14 +447,14 @@ class InterfaceFactory(object):
         return getattr(self[self._default_interface], name)
 
 
-class Channel(InterfaceFactory):
+class _Channel(_InterfaceFactory):
     def __init__(self, service_name, object_path, bus=None, ready_handler=None):
 
         self.service_name = service_name
         self.object_path = object_path
         self._ready_handler = ready_handler
         object = dbus.Bus().get_object(service_name, object_path)
-        InterfaceFactory.__init__(self, object, TelepathyGLib.IFACE_CHANNEL)
+        _InterfaceFactory.__init__(self, object, TelepathyGLib.IFACE_CHANNEL)
 
         if ready_handler:
             self[TelepathyGLib.IFACE_CHANNEL].GetChannelType(
@@ -591,7 +594,7 @@ class IncomingFileTransfer(_BaseFileTransfer):
     def __init__(self, connection, object_path, props):
         _BaseFileTransfer.__init__(self)
 
-        channel = Channel(connection.bus_name, object_path)
+        channel = _Channel(connection.bus_name, object_path)
         self.set_channel(channel)
 
         self.connect('notify::state', self.__notify_state_cb)
@@ -710,7 +713,7 @@ class _BaseOutgoingTransfer(_BaseFileTransfer):
             CHANNEL_TYPE_FILE_TRANSFER + '.Size': file_size,
             CHANNEL_TYPE_FILE_TRANSFER + '.ContentType': self._mime,
             CHANNEL_TYPE_FILE_TRANSFER + '.InitialOffset': 0}, signature='sv'))
-        self.set_channel(Channel(self._conn.bus_name, object_path))
+        self.set_channel(_Channel(self._conn.bus_name, object_path))
 
         channel_file_transfer = self.channel[CHANNEL_TYPE_FILE_TRANSFER]
         self._socket_address = channel_file_transfer.ProvideFile(

@@ -154,6 +154,7 @@ class CollabWrapperTestActivity(activity.Activity):
         self.set_canvas(box)
 
     def _say(self, string):
+        print >>sys.stderr, string
         self._textbuffer.begin_user_action()
         self._textbuffer.insert(
             self._textbuffer.get_end_iter(), string, len(string))

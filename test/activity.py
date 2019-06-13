@@ -62,11 +62,11 @@ class CollabWrapperTestActivity(activity.Activity):
         self._make_automatic_restart()
 
     def set_data(self, data):
-        print >>sys.stderr, 'set_data'
+        logging.error('set_data is not yet implemented')
         pass
 
     def get_data(self):
-        print >>sys.stderr, 'get_data'
+        logging.error('get_data is not yet implemented')
         return None
 
     def _make_toolbar_box(self):

@@ -179,6 +179,11 @@ class CollabWrapperTestActivity(activity.Activity):
                       (time.time(), buddy.props.nick, buddy.props.ip4_address))
         self._collab.connect('buddy_left', on_buddy_left_cb, 'buddy_left')
 
+        def on_incoming_file_cb(collab, ft, desc):
+            self._say('%.6f incoming-file %r %r\n' %
+                      (time.time(), ft, desc))
+        self._collab.connect('incoming_file', on_incoming_file_cb, 'incoming_file')
+
         self._collab.setup()
 
     def _message_cb(self, collab, buddy, msg):

@@ -417,63 +417,55 @@ FT_REASON_LOCAL_ERROR = 5
 FT_REASON_REMOTE_ERROR = 6
 
 
-class _InterfaceFactory(object):
-    def __init__(self, dbus_object, default_interface=None):
-
-        self._dbus_object = dbus_object
-
-        self._interfaces = {}
-        self._valid_interfaces = set()
-        self._valid_interfaces.add(PROPERTIES_IFACE)
-        self._default_interface = default_interface
-        self._valid_interfaces.add(default_interface)
-
-    def get_valid_interfaces(self):
-        return self._valid_interfaces
-
-    def __getitem__(self, name):
-        if name not in self._interfaces:
-            if name not in self._valid_interfaces:
-                raise KeyError(name)
-
-            self._interfaces[name] = dbus.Interface(self._dbus_object, name)
-
-        return self._interfaces[name]
-
-    def __contains__(self, name):
-        return name in self._interfaces or name in self._valid_interfaces
-
-    def __getattr__(self, name):
-        return getattr(self[self._default_interface], name)
-
-
-class _Channel(_InterfaceFactory):
+class _Channel():
     def __init__(self, service_name, object_path, bus=None, ready_handler=None):
 
         self.service_name = service_name
         self.object_path = object_path
         self._ready_handler = ready_handler
-        object = dbus.Bus().get_object(service_name, object_path)
-        _InterfaceFactory.__init__(self, object, TelepathyGLib.IFACE_CHANNEL)
+        self._dbus_object = dbus.Bus().get_object(service_name, object_path)
+        self._dbus_interfaces = {}
+        self._telepathy_interfaces = set()
+        self._telepathy_interfaces.add(PROPERTIES_IFACE)
+        self._default_interface = TelepathyGLib.IFACE_CHANNEL
+        self._telepathy_interfaces.add(self._default_interface)
 
         if ready_handler:
-            self[TelepathyGLib.IFACE_CHANNEL].GetChannelType(
+            chan = self._telepathy_interfaces[TelepathyGLib.IFACE_CHANNEL]
+            chan.GetChannelType(
                 reply_handler=self.get_channel_type_reply_cb,
                 error_handler=self.default_error_handler)
         else:
             type = self.GetChannelType()
             interfaces = self.GetInterfaces()
-            self.get_valid_interfaces().add(type)
-            self.get_valid_interfaces().update(interfaces)
+            self._telepathy_interfaces.add(type)
+            self._telepathy_interfaces.update(interfaces)
+
+    def __getitem__(self, name):
+        if name not in self._dbus_interfaces:
+            if name not in self._telepathy_interfaces:
+                raise KeyError(name)
+
+            self._dbus_interfaces[name] = dbus.Interface(
+                self._dbus_object, name)
+
+        return self._dbus_interfaces[name]
+
+    def __contains__(self, name):
+        return name in self._dbus_interfaces or \
+          name in self._telepathy_interfaces
+
+    def __getattr__(self, name):
+        return getattr(self[self._default_interface], name)
 
     def get_channel_type_reply_cb(self, interface):
-        self.get_valid_interfaces().add(interface)
-        self[TelepathyGLib.IFACE_CHANNEL].GetInterfaces(
+        self._telepathy_interfaces.add(interface)
+        self._telepathy_interfaces[TelepathyGLib.IFACE_CHANNEL].GetInterfaces(
             reply_handler=self.get_interfaces_reply_cb,
             error_handler=self.default_error_handler)
 
     def get_interfaces_reply_cb(self, interfaces):
-        self.get_valid_interfaces().update(interfaces)
+        self._telepathy_interfaces.update(interfaces)
         if self._ready_handler is not None:
             self._ready_handler(self)
 

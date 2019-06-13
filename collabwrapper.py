@@ -420,6 +420,7 @@ FT_REASON_REMOTE_ERROR = 6
 class _Channel():
     def __init__(self, service_name, object_path, bus=None, ready_handler=None):
 
+        _logger.error('_Channel __init__')
         self.service_name = service_name
         self.object_path = object_path
         self._ready_handler = ready_handler
@@ -440,8 +441,10 @@ class _Channel():
             interfaces = self.GetInterfaces()
             self._telepathy_interfaces.add(type)
             self._telepathy_interfaces.update(interfaces)
+        _logger.error('_Channel __init__ done')
 
     def __getitem__(self, name):
+        _logger.error('_Channel __getitem__ %r' % name)
         if name not in self._dbus_interfaces:
             if name not in self._telepathy_interfaces:
                 raise KeyError(name)
@@ -452,19 +455,23 @@ class _Channel():
         return self._dbus_interfaces[name]
 
     def __contains__(self, name):
+        _logger.error('_Channel __contains__ %r' % name)
         return name in self._dbus_interfaces or \
           name in self._telepathy_interfaces
 
     def __getattr__(self, name):
+        _logger.error('_Channel __getattr__ %r' % name)
         return getattr(self[self._default_interface], name)
 
     def get_channel_type_reply_cb(self, interface):
+        _logger.error('_Channel get_channel_type_reply_cb %r' % interface)
         self._telepathy_interfaces.add(interface)
         self._telepathy_interfaces[TelepathyGLib.IFACE_CHANNEL].GetInterfaces(
             reply_handler=self.get_interfaces_reply_cb,
             error_handler=self.default_error_handler)
 
     def get_interfaces_reply_cb(self, interfaces):
+        _logger.error('_Channel get_interfaces_reply_cb %r' % interfaces)
         self._telepathy_interfaces.update(interfaces)
         if self._ready_handler is not None:
             self._ready_handler(self)

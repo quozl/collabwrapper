@@ -199,21 +199,15 @@ class CollabWrapperTestActivity(activity.Activity):
             self._say('%.6f incoming-file %r\n' %
                       (time.time(), desc))
 
-            def on_notify_state_cb(ft, pspec):
-                logging.error('on_notify_state_cb %r' % ft.props.state)
-                if ft.props.state != FT_STATE_COMPLETED:
-                    return
-
-                stream = ft.props.output
-                if stream.has_pending():
-                    logging.error('stream has pending actions')
+            def on_ready_cb(ft, stream):
+                logging.error('on_ready_cb')
                 stream.close(None)
                 gbytes = stream.steal_as_bytes()
                 data = gbytes.get_data()
 
                 self._say('%.6f data %r\n' % (time.time(), data))
 
-            ft.connect('notify::state', on_notify_state_cb)
+            ft.connect('ready', on_ready_cb)
             ft.accept_to_memory()
         self._collab.connect('incoming_file', on_incoming_file_cb)
 
